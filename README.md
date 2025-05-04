@@ -1,13 +1,11 @@
-Okay, let's break down this Python code, which defines a Flask web application with user authentication (standard and Microsoft OAuth), user management, and email notifications.
 
-**Overarching Features**
+**Features**
 
 This code implements a web application with the following core capabilities:
 
 1.  **User Authentication:**
     * **Standard Registration:** Users can create accounts with a username, email, and password. New registrations require administrator approval.
     * **Standard Login:** Registered and approved users can log in using their username and password.
-    * **Microsoft OAuth 2.0 Login:** Users can register and log in using their Microsoft accounts. New users authenticated via Microsoft are automatically approved.
     * **Password Reset:** Users can request a password reset via email. A temporary password is sent, and the user is forced to change it upon the next login.
     * **Password Change:** Logged-in users can change their password (either voluntarily or forced after a reset).
     * **Logout:** Users can securely log out, clearing their session.
