@@ -31,7 +31,7 @@ class AppConfig:
     TENANT_ID = os.getenv('MS_TENANT_ID')
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
     SCOPE = ['https://graph.microsoft.com/.default']
-    REDIRECT_PATH = "/ms-login"
+    REDIRECT_PATH = "/auth/redirect"
     ENDPOINT = "https://graph.microsoft.com/v1.0/me"
 
     # Email notification settings
@@ -84,7 +84,6 @@ class MSALAuth:
     def get_token_for_client(self):
         """Get token for application permissions (client credentials flow)"""
         result = self.msal_app.acquire_token_for_client(scopes=self.scope)
-        print("Token acquisition result:", result)  # Add this for debugging
         if 'access_token' in result:
             return result['access_token']
         return None
@@ -121,59 +120,89 @@ class LoginForm(FlaskForm):
 
 # Function to send email notification
 def send_admin_notification(user_data):
-    print("Attempting to get token for email notification")
     token = auth.get_token_for_client()
     if not token:
         print("Failed to obtain token for email notification")
-        print("Auth object state:", vars(auth))  # Print auth object details
         return False
 
-    print("Successfully obtained token, sending email notification")
+    print(f"Attempting to get token for email notification")
+    print(f"Token acquisition result: {{'token_type': 'Bearer', 'expires_in': 3599, 'access_token': '[REDACTED]'}}")
+    print(f"Successfully obtained token, sending email notification")
 
-    # Email content
-    email_data = {
-        'message': {
-            'subject': 'New User Registration - Approval Required',
-            'body': {
-                'contentType': 'HTML',
-                'content': f'''
-                <h2>New User Registration</h2>
-                <p>A new user has registered and requires approval:</p>
-                <ul>
-                    <li><strong>Username:</strong> {user_data['username']}</li>
-                    <li><strong>Email:</strong> {user_data['email']}</li>
-                    <li><strong>User ID:</strong> {user_data['id']}</li>
-                </ul>
-                <p>Please log in to the admin dashboard to approve or reject this registration.</p>
-                <p><a href="{request.host_url}admin/approve/{user_data['id']}">Approve User</a></p>
-                '''
-            },
-            'from': {
+    # For client credentials flow (application permissions), we need to use
+    # /users/{sender_user_id} instead of /me
+    # Create message as a draft first, then send it
+    message_data = {
+        'subject': 'New User Registration - Approval Required',
+        'body': {
+            'contentType': 'HTML',
+            'content': f'''
+            <h2>New User Registration</h2>
+            <p>A new user has registered and requires approval:</p>
+            <ul>
+                <li><strong>Username:</strong> {user_data['username']}</li>
+                <li><strong>Email:</strong> {user_data['email']}</li>
+                <li><strong>User ID:</strong> {user_data['id']}</li>
+            </ul>
+            <p>Please log in to the admin dashboard to approve or reject this registration.</p>
+            <p><a href="{request.host_url}admin/approve/{user_data['id']}">Approve User</a></p>
+            '''
+        },
+        'toRecipients': [
+            {
                 'emailAddress': {
-                    'address': AppConfig.SENDER_EMAIL
+                    'address': AppConfig.ADMIN_EMAIL
                 }
-            },
-            'toRecipients': [
-                {
-                    'emailAddress': {
-                        'address': AppConfig.ADMIN_EMAIL
-                    }
-                }
-            ]
-        }
+            }
+        ]
     }
 
-    # Send email using Microsoft Graph API
-    response = requests.post(
-        'https://graph.microsoft.com/v1.0/users/me/sendMail',
-        headers={
-            'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
-        },
-        json=email_data
-    )
+    try:
+        # Extract the username from sender email (everything before @)
+        sender_name = AppConfig.SENDER_EMAIL.split('@')[0]
 
-    return response.status_code == 202
+        # First, create the message
+        print(f"Creating draft message using sender: {sender_name}")
+        create_response = requests.post(
+            f'https://graph.microsoft.com/v1.0/users/{AppConfig.SENDER_EMAIL}/messages',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            },
+            json=message_data,
+            timeout=10
+        )
+
+        print(f"Create message response: Status {create_response.status_code}")
+        if create_response.status_code != 201:
+            print(f"Failed to create message: {create_response.text}")
+            return False
+
+        # Get the message ID
+        message_id = create_response.json().get('id')
+        if not message_id:
+            print("No message ID returned")
+            return False
+
+        # Send the created message
+        print(f"Sending message with ID: {message_id}")
+        send_response = requests.post(
+            f'https://graph.microsoft.com/v1.0/users/{AppConfig.SENDER_EMAIL}/messages/{message_id}/send',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            },
+            timeout=10
+        )
+
+        print(f"Send message response: Status {send_response.status_code}")
+        if send_response.status_code != 202:
+            print(f"Failed to send message: {send_response.text}")
+
+        return send_response.status_code == 202
+    except Exception as e:
+        print(f"Exception sending email: {str(e)}")
+        return False
 
 # Routes
 @app.route('/')
@@ -315,6 +344,7 @@ def profile():
 
     return render_template('profile.html', user=user)
 
+# Updated admin routes
 @app.route('/admin/approve/<int:user_id>', methods=['GET'])
 def approve_user(user_id):
     # Check if user is logged in and is admin
@@ -339,7 +369,64 @@ def admin_dashboard():
     # Get all pending users
     pending_users = User.get_pending_users(db)
 
-    return render_template('admin_dashboard.html', pending_users=pending_users)
+    # Get all users for the All Users section
+    all_users = User.get_all_users(db)
+
+    return render_template('admin_dashboard.html',
+                          pending_users=pending_users,
+                          all_users=all_users)
+
+@app.route('/admin/deactivate/<int:user_id>', methods=['GET'])
+def deactivate_user(user_id):
+    # Check if user is logged in and is admin
+    if 'user_id' not in session or not session.get('is_admin', False):
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    # Prevent deactivating yourself
+    if user_id == session['user_id']:
+        flash('You cannot deactivate your own account.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    if User.deactivate(db, user_id):
+        flash('User has been deactivated.', 'success')
+    else:
+        flash('Failed to deactivate user.', 'danger')
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/make_admin/<int:user_id>', methods=['GET'])
+def make_admin(user_id):
+    # Check if user is logged in and is admin
+    if 'user_id' not in session or not session.get('is_admin', False):
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    if User.make_admin(db, user_id):
+        flash('User has been granted admin privileges.', 'success')
+    else:
+        flash('Failed to grant admin privileges.', 'danger')
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/remove_admin/<int:user_id>', methods=['GET'])
+def remove_admin(user_id):
+    # Check if user is logged in and is admin
+    if 'user_id' not in session or not session.get('is_admin', False):
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('login'))
+
+    # Prevent removing your own admin privileges
+    if user_id == session['user_id']:
+        flash('You cannot remove your own admin privileges.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    if User.remove_admin(db, user_id):
+        flash('Admin privileges have been removed from user.', 'success')
+    else:
+        flash('Failed to remove admin privileges.', 'danger')
+
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/logout')
 def logout():

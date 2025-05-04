@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
   redis:
     image: redis:7
+    sysctls:
+      - vm.overcommit_memory=1
     container_name: auth-redis
     ports:
       - "6379:6379"

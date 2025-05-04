@@ -12,9 +12,3 @@ CREATE TABLE IF NOT EXISTS users (
 -- Add indexes on frequently searched columns
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
-INSERT INTO users (username, email, password_hash, active, is_admin, ms_auth)
-VALUES ('Patrick', 'patrick@korczewski.de',
-        'scrypt:32768:8:1$QSYk3XNSUBCmMcxT$d2112aa584fa5bd165c8b517399306feee42255340d0b3ebc8ce4de66b86fca95e787647f061ebd61d88c444759ace13c8636b409011a1381fd1d0a09ab6db0b',
-        TRUE, TRUE, FALSE)
-    ON CONFLICT (email) DO NOTHING;

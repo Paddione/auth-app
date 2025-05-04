@@ -68,13 +68,17 @@ class Database:
 
 class User:
     @staticmethod
-    def create(db, username, email, password, active=False):
-        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    def create(db, username, email, password, active=False, ms_auth=False):
+        """Create a new user"""
+        password_hash = None
+        if password:
+            password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
         cursor = db.get_cursor()
         try:
             cursor.execute(
-                "INSERT INTO users (username, email, password_hash, active) VALUES (%s, %s, %s, %s) RETURNING id",
-                (username, email, password_hash, active)
+                "INSERT INTO users (username, email, password_hash, active, ms_auth) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (username, email, password_hash, active, ms_auth)
             )
             user_id = cursor.fetchone()[0]
             return user_id
@@ -86,6 +90,7 @@ class User:
 
     @staticmethod
     def get_by_username(db, username):
+        """Get user by username"""
         cursor = db.get_cursor()
         try:
             cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
@@ -98,6 +103,7 @@ class User:
 
     @staticmethod
     def get_by_email(db, email):
+        """Get user by email"""
         cursor = db.get_cursor()
         try:
             cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
@@ -107,6 +113,7 @@ class User:
 
     @staticmethod
     def get_by_id(db, user_id):
+        """Get user by ID"""
         cursor = db.get_cursor()
         try:
             cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
@@ -116,12 +123,14 @@ class User:
 
     @staticmethod
     def check_password(user, password):
-        if not user:
+        """Verify password for user"""
+        if not user or not user['password_hash']:
             return False
         return bcrypt.check_password_hash(user['password_hash'], password)
 
     @staticmethod
     def activate(db, user_id):
+        """Activate a user"""
         cursor = db.get_cursor()
         try:
             cursor.execute("UPDATE users SET active = TRUE WHERE id = %s", (user_id,))
@@ -133,10 +142,63 @@ class User:
             cursor.close()
 
     @staticmethod
+    def deactivate(db, user_id):
+        """Deactivate a user"""
+        cursor = db.get_cursor()
+        try:
+            cursor.execute("UPDATE users SET active = FALSE WHERE id = %s", (user_id,))
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            print(f"Database error: {e}")
+            return False
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def make_admin(db, user_id):
+        """Grant admin privileges to a user"""
+        cursor = db.get_cursor()
+        try:
+            cursor.execute("UPDATE users SET is_admin = TRUE WHERE id = %s", (user_id,))
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            print(f"Database error: {e}")
+            return False
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def remove_admin(db, user_id):
+        """Remove admin privileges from a user"""
+        cursor = db.get_cursor()
+        try:
+            cursor.execute("UPDATE users SET is_admin = FALSE WHERE id = %s", (user_id,))
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            print(f"Database error: {e}")
+            return False
+        finally:
+            cursor.close()
+
+    @staticmethod
     def get_pending_users(db):
+        """Get all pending (inactive) users"""
         cursor = db.get_cursor()
         try:
             cursor.execute("SELECT * FROM users WHERE active = FALSE")
+            return cursor.fetchall()
+        except psycopg2.Error as e:
+            print(f"Database error: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def get_all_users(db):
+        """Get all users in the system"""
+        cursor = db.get_cursor()
+        try:
+            cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
             return cursor.fetchall()
         except psycopg2.Error as e:
             print(f"Database error: {e}")

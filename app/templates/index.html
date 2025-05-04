@@ -7,11 +7,11 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h2 class="text-center">Welcome to the Authentication App</h2>
+                <h2 class="text-center">Willkommen in Patricks Welt</h2>
             </div>
             <div class="card-body">
                 <div class="text-center mb-4">
-                    <p class="lead">This is a simple demonstration of user authentication with Flask, PostgreSQL, and Redis.</p>
+                    <p class="lead">Dies ist eine simple Demonstration meines Könnens</p>
                 </div>
 
                 {% if 'user_id' in session %}
@@ -24,8 +24,8 @@
                     <div class="col-md-6 mb-3">
                         <div class="card h-100">
                             <div class="card-body text-center">
-                                <h3>Already have an account?</h3>
-                                <p>Sign in to access your profile</p>
+                                <h3>Bereits registriert?</h3>
+                                <p>und Passierschein A38 erhalten?  </p>
                                 <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
                             </div>
                         </div>
@@ -33,9 +33,9 @@
                     <div class="col-md-6 mb-3">
                         <div class="card h-100">
                             <div class="card-body text-center">
-                                <h3>New here?</h3>
-                                <p>Create an account to get started</p>
-                                <a href="{{ url_for('register') }}" class="btn btn-success">Register</a>
+                                <h3>Noch ohne Fahrschein?</h3>
+                                <p>Beantrage hier Passierschein a38</p>
+                                <a href="{{ url_for('register') }}" class="btn btn-success">Antrag stellen</a>
                             </div>
                         </div>
                     </div>

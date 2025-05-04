@@ -1,39 +1,139 @@
 {% extends "layout.html" %}
-
+{% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-<div class="container">
-    <h1 class="mt-4">Admin Dashboard</h1>
-    <h2 class="mt-4">Pending Users</h2>
+<div class="container py-4">
+    <h1 class="mb-4">Admin Dashboard</h1>
 
-    {% if pending_users %}
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Registration Date</th>
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for user in pending_users %}
-            <tr>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.created_at|default('N/A') }}</td>
-                <td>
-                    <a href="{{ url_for('approve_user', user_id=user.id) }}" class="btn btn-success btn-sm">Approve</a>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    <!-- Pending User Approvals Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Pending User Approvals</h5>
+        </div>
+        <div class="card-body">
+            {% if pending_users %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in pending_users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.created_at|default('N/A') }}</td>
+                        <td>
+                            <a href="{{ url_for('approve_user', user_id=user.id) }}" class="btn btn-success btn-sm">Approve</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No pending user approvals at this time.
+            </div>
+            {% endif %}
+        </div>
     </div>
-    {% else %}
-    <div class="alert alert-info mt-3">
-        No pending users at this time.
+
+    <!-- All Users Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">All Users</h5>
+        </div>
+        <div class="card-body">
+            {% if all_users %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Admin</th>
+                        <th>Auth Method</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in all_users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="badge bg-warning">Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.ms_auth %}
+                            <span class="badge bg-primary">Microsoft</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Local</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at|default('N/A') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if user.active %}
+                                <a href="{{ url_for('deactivate_user', user_id=user.id) }}" class="btn btn-warning btn-sm">Deactivate</a>
+                                {% else %}
+                                <a href="{{ url_for('approve_user', user_id=user.id) }}" class="btn btn-success btn-sm">Activate</a>
+                                {% endif %}
+
+                                {% if user.is_admin %}
+                                <a href="{{ url_for('remove_admin', user_id=user.id) }}" class="btn btn-danger btn-sm">Remove Admin</a>
+                                {% else %}
+                                <a href="{{ url_for('make_admin', user_id=user.id) }}" class="btn btn-info btn-sm">Make Admin</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No users found in the system.
+            </div>
+            {% endif %}
+        </div>
     </div>
-    {% endif %}
+
+    <!-- Admin Tools Section -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="card-title mb-0">Admin Tools</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action active">Dashboard</a>
+                <a href="#" class="list-group-item list-group-item-action">System Settings</a>
+                <a href="#" class="list-group-item list-group-item-action">Activity Logs</a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
