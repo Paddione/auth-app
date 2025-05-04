@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Authentication App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h2 class="text-center">Welcome to the Authentication App</h2>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <p class="lead">This is a simple demonstration of user authentication with Flask, PostgreSQL, and Redis.</p>
+                </div>
+
+                {% if 'user_id' in session %}
+                <div class="alert alert-success">
+                    <p>You are logged in as <strong>{{ session.username }}</strong>.</p>
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary">View Profile</a>
+                </div>
+                {% else %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3>Already have an account?</h3>
+                                <p>Sign in to access your profile</p>
+                                <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3>New here?</h3>
+                                <p>Create an account to get started</p>
+                                <a href="{{ url_for('register') }}" class="btn btn-success">Register</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

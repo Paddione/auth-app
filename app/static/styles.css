@@ -1,0 +1,22 @@
+body {
+    background-color: #f8f9fa;
+    padding-bottom: 40px;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.alert {
+    margin-bottom: 20px;
+}
