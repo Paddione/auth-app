@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Home - Authentication App{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
@@ -13,7 +11,6 @@
                 <div class="text-center mb-4">
                     <p class="lead">Dies ist eine simple Demonstration meines Könnens</p>
                 </div>
-
                 {% if 'user_id' in session %}
                 <div class="alert alert-success">
                     <p>You are logged in as <strong>{{ session.username }}</strong>.</p>
@@ -39,6 +36,9 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('reset_password_request') }}" class="btn btn-warning">Passierschein verloren?</a>
                 </div>
                 {% endif %}
             </div>
