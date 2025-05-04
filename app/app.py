@@ -135,10 +135,6 @@ def send_admin_notification(user_data):
         print("Failed to obtain token for email notification")
         return False
 
-    print(f"Attempting to get token for email notification")
-    print(f"Token acquisition result: {{'token_type': 'Bearer', 'expires_in': 3599, 'access_token': '[REDACTED]'}}")
-    print(f"Successfully obtained token, sending email notification")
-
     # For client credentials flow (application permissions), we need to use
     # /users/{sender_user_id} instead of /me
     # Create message as a draft first, then send it
